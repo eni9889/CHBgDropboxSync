@@ -9,8 +9,9 @@
 
 #import "CHBgDropboxSync.h"
 #import <QuartzCore/QuartzCore.h>
-#import "DropboxSDK.h"
+#import <DropboxSDK/DropboxSDK.h>
 #import "ConciseKit.h"
+#import "Utility.h"
 
 #define lastSyncDefaultsKey @"CHBgDropboxSyncLastSyncFiles"
 
@@ -197,6 +198,13 @@ CHBgDropboxSync* bgDropboxSyncInstance=nil;
 // Download
 - (void)startTaskDownload:(NSString*)file {
     NSLog(@"Sync: Downloading file %@", file);
+    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:md5(file)];
+    /*
+    if ([[NSFileManager defaultManager] fileExistsAtPath:[$.documentPath stringByAppendingPathComponent:file]])
+    {
+        [[NSFileManager defaultManager] removeItemAtPath:[$.documentPath stringByAppendingPathComponent:file] error:nil];
+    }
+     */
     [client loadFile:$str(@"/%@", file) intoPath:[$.documentPath stringByAppendingPathComponent:file]];
 }
 - (void)restClient:(DBRestClient*)client loadedFile:(NSString*)destPath contentType:(NSString*)contentType metadata:(DBMetadata*)metadata {
@@ -204,6 +212,7 @@ CHBgDropboxSync* bgDropboxSyncInstance=nil;
     NSLog(@"Downloaded >%@<, it's DB date is: %@", destPath, [metadata.lastModifiedDate descriptionWithLocale:[NSLocale currentLocale]]);
     NSDictionary* attr = $dict(metadata.lastModifiedDate, NSFileModificationDate);
     [[NSFileManager defaultManager] setAttributes:attr ofItemAtPath:destPath error:nil];
+    
     [self stepComplete];
     anyLocalChanges = YES; // So that when we complete, we notify that there were local changes
 }
@@ -240,8 +249,9 @@ CHBgDropboxSync* bgDropboxSyncInstance=nil;
         NSString* itemPath = [root stringByAppendingPathComponent:item];
         NSDictionary* attribs = [[NSFileManager defaultManager] attributesOfItemAtPath:itemPath error:nil];
         BOOL isFile = $eql(attribs.fileType, NSFileTypeRegular);
-                
-        if (isFile) {
+        BOOL shouldSync = [[NSUserDefaults standardUserDefaults] boolForKey:md5(item)];
+        if (isFile && shouldSync)
+        {
             [localFiles setObject:attribs.fileModificationDate forKey:item];
         }
     }
@@ -256,6 +266,7 @@ CHBgDropboxSync* bgDropboxSyncInstance=nil;
     NSMutableSet* all = [NSMutableSet set]; // Get a complete list of all files both local and remote
     [all addObjectsFromArray:localFiles.allKeys];
     [all addObjectsFromArray:remoteFiles.allKeys];
+    CCLOG(@"All Files are: %@", all);
     for (NSString* file in all) {
         NSDate* local = [localFiles objectForKey:file];
         NSDate* remote = [remoteFiles objectForKey:file];
@@ -347,9 +358,11 @@ CHBgDropboxSync* bgDropboxSyncInstance=nil;
     }
 }
 - (void)restClient:(DBRestClient*)client metadataUnchangedAtPath:(NSString*)path {
+    CCLOG(@"%s client: %@ path: %@",__func__,client,path);
     [self internalShutdownFailed];
 }
 - (void)restClient:(DBRestClient*)client loadMetadataFailedWithError:(NSError*)error {
+    CCLOG(@"%s client: %@ error: %@",__func__,client,error);
     [self internalShutdownFailed];
 }
 

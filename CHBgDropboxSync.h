@@ -6,7 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "DBRestClient.h"
+#import <DropboxSDK/DropboxSDK.h>
 
 @interface CHBgDropboxSync : NSObject<DBRestClientDelegate, UIAlertViewDelegate>
 
