@@ -36,7 +36,7 @@ CHBgDropboxSync* bgDropboxSyncInstance=nil;
     
     UIWindow* w = [[[UIApplication sharedApplication] delegate] window];
     workingLabel = [[UILabel alloc] init];
-    workingLabel.textAlignment = UITextAlignmentRight;
+    workingLabel.textAlignment = NSTextAlignmentRight;
     workingLabel.text = @"Syncing... ";
     workingLabel.textColor = [UIColor whiteColor];
     int ht = 30;
